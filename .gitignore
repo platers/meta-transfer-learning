@@ -3,6 +3,7 @@
 *.egg
 *.pyc
 *.coverage
+*.iml
 /logs
 /dist
 /build
