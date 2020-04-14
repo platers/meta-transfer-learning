@@ -20,39 +20,40 @@ class Simple(gym.Env):
     value of any agent’s state variable (including their own) up or down by 1. 
     
     Action space 
+    List of number of points to add to each variable in range [0, 5)
+    [agent1.var1, agent1.var2, agent2.var1, agent2.var2]
     
     Observation space
+    The value of every variable for every agent. The last value is the id of the agent.
+    [agent1.var1, agent1.var2, agent2.var1, agent2.var2, id]
+    
+    Reward
     """
 
-    def __init__(self, step_cost=0, full_observable=False, max_steps=100):
-        self.n_agents = 2
+    def __init__(self, n_agents=2, n_vars=2, step_cost=0, full_observable=False, max_steps=100):
+        self.n_agents = n_agents
+        self.n_vars = n_vars
         self._max_steps = max_steps
         self._step_count = None
         self._step_cost = step_cost
         self.full_observable = full_observable
 
-        self.action_space = MultiAgentActionSpace([spaces.Discrete(2 * self.n_agents) for _ in range(self.n_agents)])
-        self._obs_high = np.array([-np.inf] * self.n_agents + [self.n_agents])
-        self._obs_low = np.array([-np.inf] * self.n_agents + [0])
-        if self.full_observable:
-            self._obs_high = np.tile(self._obs_high, self.n_agents)
-            self._obs_low = np.tile(self._obs_low, self.n_agents)
-        self.observation_space = MultiAgentObservationSpace([spaces.Box(self._obs_low, self._obs_high) for _ in range(self.n_agents)])
+        self.action_space = MultiAgentActionSpace([spaces.MultiDiscrete([5] * (self.n_agents * self.n_vars)) for _ in range(self.n_agents)])
+        self.observation_space = MultiAgentObservationSpace([spaces.Box(low=-np.inf, high=np.inf, shape=(self.n_agents * self.n_vars + 1,)) for _ in range(self.n_agents)])
 
-        self.agents_var1 = None
-        self.agents_var2 = None
+        self.agents_var = None
         self._agent_dones = None
         self._total_episode_reward = None
         self.steps_beyond_done = None
         
     def __init_full_obs(self):
-        self.agent_var1 = [0] * self.n_agents
+        self.agent_var = [0] * (self.n_agents * self.n_vars)
 
     def get_agent_obs(self):
         _obs = []
         for agent_i in range(self.n_agents):
             # add state
-            _agent_i_obs = copy.copy(self.agent_var1)
+            _agent_i_obs = copy.copy(self.agent_var)
 
             #add agent id
             _agent_i_obs.append(agent_i)
@@ -73,13 +74,7 @@ class Simple(gym.Env):
         return self.get_agent_obs()
 
     def __update_agent_action(self, agent_i, action):
-        if action >= 0 and action < 2 * self.n_agents:
-            if action % 2 == 0:
-                self.agent_var1[action // 2] += 1
-            else:
-                self.agent_var1[action // 2] -= 1
-        else:
-            raise Exception('Action Not found!')
+        self.agent_var = list(np.array(self.agent_var) + action)
 
 
     def step(self, agents_action):
