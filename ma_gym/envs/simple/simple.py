@@ -74,17 +74,32 @@ class Simple(gym.Env):
         return self.get_agent_obs()
 
     def __update_agent_action(self, agent_i, action):
+        action = (action - np.mean(action)).astype(int)
+        # Make the actions have a bigger affect on the other agent than itself.
+        # TODO: This only works if there are 2 agents. fix it!
+        if agent_i == 0:
+            multiply = [1,1,2,2]
+        if agent_i == 1:
+            multiply = [2,2,1,1]
+        action *= multiply
         self.agent_var = list(np.array(self.agent_var) + action)
 
+    def get_first_values(self, agent_var):
+        """Gives the first value for each agent."""
+        # Will only work if there are 2 agents. Fix this
+        return np.array([agent_var[0], agent_var[2]])
 
     def step(self, agents_action):
         assert len(agents_action) == self.n_agents
 
         self._step_count += 1
-        rewards = [self._step_cost for _ in range(self.n_agents)]
+
+        pre_agent_var = self.agent_var
 
         for agent_i, action in enumerate(agents_action):
             self.__update_agent_action(agent_i, action)
+
+        rewards = self.get_first_values(self.agent_var) - self.get_first_values(np.array(pre_agent_var))
 
         if self._step_count >= self._max_steps:
             for i in range(self.n_agents):

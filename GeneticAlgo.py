@@ -18,9 +18,18 @@ creator.create("Individual", array.array, typecode='b', fitness=creator.FitnessM
 
 toolbox = base.Toolbox()
 
-toolbox.register("attr", random.randint, 0, 3)
+max_action = 5
+
+toolbox.register("attr", random.randint, 0, max_action)
 toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr, 2)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
+def get_action(agent_i, alturism_amount):
+  # TODO: This only works for 2 agents.
+  if agent_i == 0:
+    return [max_action-alturism_amount, 0, alturism_amount, 0]
+  else:
+    return [alturism_amount, 0, max_action-alturism_amount, 0]
 
 def evalOneMax(individual):
   """Runs the environment. It always takes the same action determined by the individual's genes.
@@ -29,10 +38,12 @@ def evalOneMax(individual):
   done_n = [False for _ in range(env.n_agents)]
   ep_reward = 0
 
+  alturism_amount = individual[0]
+
   env.reset()
-  while not all(done_n):
-    obs_n, reward_n, done_n, info = env.step(individual)
-    ep_reward += sum(reward_n)
+  for _ in range(3):
+    obs_n, reward_n, done_n, info = env.step([get_action(0, alturism_amount), get_action(1, alturism_amount)])
+    ep_reward += reward_n[0]
   env.close()
 
   # The environment always gives 0 reward for some reason.
@@ -54,6 +65,8 @@ def main():
 
   pop, log = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=40,
                                  stats=stats, halloffame=hof, verbose=True)
+
+  print("pop", pop)
 
   return pop, log, hof
 
