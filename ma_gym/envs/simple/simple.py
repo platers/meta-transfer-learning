@@ -38,7 +38,7 @@ class Simple(gym.Env):
         self._step_cost = step_cost
         self.full_observable = full_observable
 
-        self.action_space = MultiAgentActionSpace([spaces.MultiDiscrete([5] * (self.n_agents * self.n_vars)) for _ in range(self.n_agents)])
+        self.action_space = MultiAgentObservationSpace([spaces.Box(low=0, high=5, shape=(self.n_agents, self.n_vars)) for _ in range(self.n_agents)])
         self.observation_space = MultiAgentObservationSpace([spaces.Box(low=-np.inf, high=np.inf, shape=(self.n_agents * self.n_vars + 1,)) for _ in range(self.n_agents)])
 
         self.agents_var = None
@@ -47,7 +47,7 @@ class Simple(gym.Env):
         self.steps_beyond_done = None
         
     def __init_full_obs(self):
-        self.agent_var = [0] * (self.n_agents * self.n_vars)
+        self.agent_var = [([0] * self.n_vars) for i in range(self.n_agents)]
 
     def get_agent_obs(self):
         _obs = []
@@ -76,18 +76,15 @@ class Simple(gym.Env):
     def __update_agent_action(self, agent_i, action):
         action = (action - np.mean(action)).astype(int)
         # Make the actions have a bigger affect on the other agent than itself.
-        # TODO: This only works if there are 2 agents. fix it!
-        if agent_i == 0:
-            multiply = [1,1,2,2]
-        if agent_i == 1:
-            multiply = [2,2,1,1]
-        action *= multiply
-        self.agent_var = list(np.array(self.agent_var) + action)
+        scale = [2] * self.n_agents
+        scale[agent_i] = 1
+        action *= scale
+        self.agent_var = (np.array(self.agent_var) + action).tolist()
+        #print(self.agent_var)
 
     def get_first_values(self, agent_var):
         """Gives the first value for each agent."""
-        # Will only work if there are 2 agents. Fix this
-        return np.array([agent_var[0], agent_var[2]])
+        return np.array(agent_var)[:,0]
 
     def step(self, agents_action):
         assert len(agents_action) == self.n_agents
@@ -99,7 +96,7 @@ class Simple(gym.Env):
         for agent_i, action in enumerate(agents_action):
             self.__update_agent_action(agent_i, action)
 
-        rewards = self.get_first_values(self.agent_var) - self.get_first_values(np.array(pre_agent_var))
+        rewards = self.get_first_values(self.agent_var) - self.get_first_values(pre_agent_var)
 
         if self._step_count >= self._max_steps:
             for i in range(self.n_agents):
