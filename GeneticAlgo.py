@@ -27,9 +27,9 @@ toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 def get_action(agent_i, alturism_amount):
   # TODO: This only works for 2 agents.
   if agent_i == 0:
-    return [max_action-alturism_amount, 0, alturism_amount, 0]
+    return [[max_action-alturism_amount, 0], [alturism_amount, 0]]
   else:
-    return [alturism_amount, 0, max_action-alturism_amount, 0]
+    return [[alturism_amount, 0], [max_action-alturism_amount, 0]]
 
 def evalOneMax(individual):
   """Runs the environment. It always takes the same action determined by the individual's genes.
@@ -46,7 +46,6 @@ def evalOneMax(individual):
     ep_reward += reward_n[0]
   env.close()
 
-  # The environment always gives 0 reward for some reason.
   return ep_reward,
 
 toolbox.register("evaluate", evalOneMax)
