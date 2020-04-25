@@ -4,7 +4,7 @@
 import array
 import random
 
-import numpy
+import numpy as np
 
 from deap import algorithms
 from deap import base
@@ -14,22 +14,21 @@ import gym
 import ma_gym
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-creator.create("Individual", array.array, typecode='b', fitness=creator.FitnessMax)
+creator.create("Individual", array.array, typecode='d', fitness=creator.FitnessMax)
 
 toolbox = base.Toolbox()
 
 max_action = 5
 
-toolbox.register("attr", random.randint, 0, max_action)
+toolbox.register("attr", random.uniform, -1, 1)
 toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr, 2)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-def get_action(agent_i, alturism_amount):
-  # TODO: This only works for 2 agents.
-  if agent_i == 0:
-    return [[max_action-alturism_amount, 0], [alturism_amount, 0]]
-  else:
-    return [[alturism_amount, 0], [max_action-alturism_amount, 0]]
+def get_action(agent_i, reward_weights, obs):
+  # This only works for this simple environment
+  # In this enviroment, the reward weights and actions are the same
+  action = np.sign(np.asarray(reward_weights) + 0.00001) * max_action #add small constant to avoid 0
+  return action
 
 def evalOneMax(individual):
   """Runs the environment. It always takes the same action determined by the individual's genes.
@@ -38,11 +37,12 @@ def evalOneMax(individual):
   done_n = [False for _ in range(env.n_agents)]
   ep_reward = 0
 
-  alturism_amount = individual[0]
+  alturism_amount = individual
 
-  env.reset()
-  for _ in range(3):
-    obs_n, reward_n, done_n, info = env.step([get_action(0, alturism_amount), get_action(1, alturism_amount)])
+  obs_n = env.reset()
+  for _ in range(5):
+    actions = [(get_action(i, alturism_amount, obs_n[i])) for i in range(env.n_agents)]
+    obs_n, reward_n, done_n, info = env.step(actions)
     ep_reward += reward_n[0]
   env.close()
 
@@ -57,12 +57,12 @@ def main():
   pop = toolbox.population(n=300)
   hof = tools.HallOfFame(1)
   stats = tools.Statistics(lambda ind: ind.fitness.values)
-  stats.register("avg", numpy.mean)
-  stats.register("std", numpy.std)
-  stats.register("min", numpy.min)
-  stats.register("max", numpy.max)
+  stats.register("avg", np.mean)
+  stats.register("std", np.std)
+  stats.register("min", np.min)
+  stats.register("max", np.max)
 
-  pop, log = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=40,
+  pop, log = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=10,
                                  stats=stats, halloffame=hof, verbose=True)
 
   print("pop", pop)
