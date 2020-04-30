@@ -38,6 +38,7 @@ class SimpleEnv(MultiAgentEnv):
         self._agent_dones = None
         self._total_episode_reward = None
         self.steps_beyond_done = None
+        self.last_true_reward = 0
         
         self.agent_ids = []
         self.agent_idx = {}
@@ -86,15 +87,20 @@ class SimpleEnv(MultiAgentEnv):
             reward_dict[self.agent_ids[i]] = r
         for i in range(self.n_agents):
             self._total_episode_reward[i] += rewards[i]
+            
+            
         return reward_dict
     
     def get_true_rewards(self, pre_agent_var):
         """Rewards list"""
         rewards = []
+        reward_dict = {}
         for i in range(self.n_agents):
             r = np.dot(self.agent_var[i], self.reward_weights[i]) - np.dot(pre_agent_var[i], self.reward_weights[i])
             rewards.append(r)
-        return rewards
+            #reward_dict[self.agent_ids[i]] = {'true_reward': r}
+            reward_dict[self.agent_ids[i]] = r
+        return reward_dict
     
     def step(self, action_dict):
         assert len(action_dict) == self.n_agents
@@ -107,10 +113,10 @@ class SimpleEnv(MultiAgentEnv):
             self.__update_agent_action(agent_i, action)
 
         rewards = self.get_rewards(pre_agent_var)
-        true_rewards = self.get_true_rewards(pre_agent_var)
+        self.last_true_reward = self.get_true_rewards(pre_agent_var)['agent_0']
         
         done = {
             "__all__": self._step_count >= 10,
         }
-
-        return self.get_agent_obs(), rewards, done, {'true_rewards': true_rewards}
+        #assert 'true_reward' in true_rewards['agent_0']
+        return self.get_agent_obs(), rewards, done, {}
