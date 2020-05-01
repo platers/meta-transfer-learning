@@ -1,7 +1,10 @@
 import copy
 import numpy as np
+import gym
 from gym import spaces
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
+
+gym.logger.set_level(40)
 
 class SimpleEnv(MultiAgentEnv):
     """
@@ -24,6 +27,7 @@ class SimpleEnv(MultiAgentEnv):
         self.n_agents = config['n_agents']
         self.n_vars = config['n_vars']
         self.reward_weights = config['reward_weights']
+        self._max_step_count = config['max_step_count']
         self._step_count = 0
         
         action_space = tuple([(spaces.Box(low=0, high=5, shape=(self.n_vars,))) for i in range(self.n_agents)])
@@ -40,13 +44,16 @@ class SimpleEnv(MultiAgentEnv):
         self.steps_beyond_done = None
         self.last_true_reward = 0
         
-        self.agent_ids = []
-        self.agent_idx = {}
+        self.agent_ids = [] #['agent_0', 'agent_1', ...]
+        self.agent_idx = {} #{'agent_0': 0, ...}
         for i in range(self.n_agents):
             self.agent_ids.append('agent_' + str(i))
             self.agent_idx['agent_' + str(i)] = i
         
     def get_agent_obs(self):
+        """
+        Returns a dictionary with all agents observations
+        """
         _obs = {}
         for agent_i in range(self.n_agents):
             # add state
@@ -60,6 +67,9 @@ class SimpleEnv(MultiAgentEnv):
         return _obs
     
     def reset(self):
+        """
+        Resets the environment and returns observations
+        """
         self.agent_var = [([0] * self.n_vars) for i in range(self.n_agents)]
         self._step_count = 0
         self._total_episode_reward = [0 for _ in range(self.n_agents)]
@@ -68,6 +78,9 @@ class SimpleEnv(MultiAgentEnv):
         return self.get_agent_obs()
 
     def __update_agent_action(self, agent_i, action):
+        """
+        Apply agent_i's action
+        """
         action = (action - np.mean(action))
         # Make the actions have a bigger affect on the other agent than itself.
         scale = [2] * self.n_agents
@@ -79,8 +92,10 @@ class SimpleEnv(MultiAgentEnv):
         """Gives the first value for each agent."""
         return np.array(agent_var)[:,0]
         
-    def get_rewards(self, pre_agent_var):
-        """Rewards"""
+    def get_true_rewards(self, pre_agent_var):
+        """
+        Returns dictionary of rewards according to the true reward function
+        """
         rewards = self.get_first_values(self.agent_var) - self.get_first_values(pre_agent_var)
         reward_dict = {}
         for i, r in enumerate(rewards):
@@ -91,14 +106,17 @@ class SimpleEnv(MultiAgentEnv):
             
         return reward_dict
     
-    def get_true_rewards(self, pre_agent_var):
-        """Rewards list"""
+    def get_rewards(self, pre_agent_var):
+        """
+        Returns dictionary of rewards according to each agents reward weights
+        Currently just a dot product of reward weights and state.
+        TODO: Change from dot product to neural network
+        """
         rewards = []
         reward_dict = {}
         for i in range(self.n_agents):
             r = np.dot(self.agent_var[i], self.reward_weights[i]) - np.dot(pre_agent_var[i], self.reward_weights[i])
             rewards.append(r)
-            #reward_dict[self.agent_ids[i]] = {'true_reward': r}
             reward_dict[self.agent_ids[i]] = r
         return reward_dict
     
@@ -118,5 +136,4 @@ class SimpleEnv(MultiAgentEnv):
         done = {
             "__all__": self._step_count >= 10,
         }
-        #assert 'true_reward' in true_rewards['agent_0']
         return self.get_agent_obs(), rewards, done, {}
