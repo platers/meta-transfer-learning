@@ -83,9 +83,9 @@ class SimpleEnv(MultiAgentEnv):
         """
         action = (action - np.mean(action))
         # Make the actions have a bigger affect on the other agent than itself.
-        scale = [2] * self.n_agents
+        scale = np.array([2] * self.n_agents)
         scale[self.agent_idx[agent_i]] = 1
-        action *= scale
+        action = np.multiply(action, scale[:, np.newaxis])
         self.agent_var = (np.array(self.agent_var) + action).tolist()
 
     def get_first_values(self, agent_var):
