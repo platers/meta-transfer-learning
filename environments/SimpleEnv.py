@@ -54,14 +54,14 @@ class SimpleEnv(MultiAgentEnv):
         obs.insert(0, current_agent_obs)
         return obs
 
-    def get_agent_obs(self):
+    def get_agent_obs(self, agent_var):
         """
         Returns a dictionary with all agents observations
         """
         _obs = {}
         for agent_i in range(self.n_agents):
             # add state
-            _agent_i_obs = copy.copy(self.agent_var)
+            _agent_i_obs = copy.copy(agent_var)
 
             _agent_i_obs = self._correct_obs_order(agent_i, _agent_i_obs)
 
@@ -78,7 +78,7 @@ class SimpleEnv(MultiAgentEnv):
         self._total_episode_reward = [0 for _ in range(self.n_agents)]
         self._agent_dones = [False for _ in range(self.n_agents)]
         
-        return self.get_agent_obs()
+        return self.get_agent_obs(self.agent_var)
 
     def _correct_action_order(self, agent_i, action):
         current_agent_act = action.pop(0)
@@ -118,7 +118,9 @@ class SimpleEnv(MultiAgentEnv):
         rewards = []
         reward_dict = {}
         for i in range(self.n_agents):
-            r = np.dot(self.agent_var[i], self.reward_weights[i]) - np.dot(pre_agent_var[i], self.reward_weights[i])
+            cur_obs = np.asarray(self.get_agent_obs(self.agent_var)[self.agent_ids[i]]).flatten()
+            old_obs = np.asarray(self.get_agent_obs(pre_agent_var)[self.agent_ids[i]]).flatten()
+            r = np.dot(cur_obs, self.reward_weights[i]) - np.dot(old_obs, self.reward_weights[i])
             rewards.append(r)
             reward_dict[self.agent_ids[i]] = r
         for i in range(self.n_agents):
@@ -141,4 +143,4 @@ class SimpleEnv(MultiAgentEnv):
         done = {
             "__all__": self._step_count >= 10,
         }
-        return self.get_agent_obs(), rewards, done, {}
+        return self.get_agent_obs(self.agent_var), rewards, done, {}
