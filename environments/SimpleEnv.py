@@ -28,6 +28,7 @@ class SimpleEnv(MultiAgentEnv):
         self.n_vars = config['n_vars']
         self.reward_weights = config['reward_weights']
         self._max_step_count = config['max_step_count']
+        self._true_reward_weights = config['true_reward_weights']
         self._step_count = 0
         
         action_space = tuple([(spaces.Box(low=0, high=5, shape=(self.n_vars,))) for i in range(self.n_agents)])
@@ -98,15 +99,12 @@ class SimpleEnv(MultiAgentEnv):
         action = np.multiply(action, scale[:, np.newaxis])
         self.agent_var = (np.array(self.agent_var) + action).tolist()
 
-    def get_first_values(self, agent_var):
-        """Gives the first value for each agent."""
-        return np.array(agent_var)[:,0]
-        
     def get_true_rewards(self, pre_agent_var):
         """
         Returns list of rewards according to the true reward function
         """
-        rewards = self.get_first_values(self.agent_var) - self.get_first_values(pre_agent_var)
+        diff = (np.array(self.agent_var) - np.array(pre_agent_var))
+        rewards = np.dot(diff, self._true_reward_weights)
         return rewards
     
     def get_rewards(self, pre_agent_var):
