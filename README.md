@@ -3,8 +3,8 @@ Transfer learning and meta learning for safety
 
 Initial multi agent gym code from https://github.com/koulanurag/ma-gym
 
-To install the environment run
+To run:
 
-pip install -e .
+install the nightly version here https://docs.ray.io/en/latest/installation.html
 
-See the notebook for example usage
+pip install -r requirements.txt
