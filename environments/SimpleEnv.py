@@ -34,7 +34,6 @@ class SimpleEnv(MultiAgentEnv):
         self.action_space = spaces.Tuple(action_space)        
         
         observation_space = [(spaces.Box(low=-np.inf, high=np.inf, shape=(self.n_vars,))) for i in range(self.n_agents)]
-        observation_space.append(spaces.Discrete(self.n_agents))
         observation_space = tuple(observation_space)
         self.observation_space = spaces.Tuple(observation_space)
 
@@ -49,7 +48,12 @@ class SimpleEnv(MultiAgentEnv):
         for i in range(self.n_agents):
             self.agent_ids.append('agent_' + str(i))
             self.agent_idx['agent_' + str(i)] = i
-        
+
+    def _correct_obs_order(self, agent_i, obs):
+        current_agent_obs = obs.pop(agent_i)
+        obs.insert(0, current_agent_obs)
+        return obs
+
     def get_agent_obs(self):
         """
         Returns a dictionary with all agents observations
@@ -59,8 +63,7 @@ class SimpleEnv(MultiAgentEnv):
             # add state
             _agent_i_obs = copy.copy(self.agent_var)
 
-            #add agent id
-            _agent_i_obs.append(agent_i)
+            _agent_i_obs = self._correct_obs_order(agent_i, _agent_i_obs)
 
             _obs[self.agent_ids[agent_i]] = _agent_i_obs
 
@@ -77,10 +80,17 @@ class SimpleEnv(MultiAgentEnv):
         
         return self.get_agent_obs()
 
+    def _correct_action_order(self, agent_i, action):
+        current_agent_act = action.pop(0)
+        action.insert(self.agent_idx[agent_i], current_agent_act)
+        return action
+
     def __update_agent_action(self, agent_i, action):
         """
         Apply agent_i's action
         """
+        action = list(action)
+        self._correct_action_order(agent_i, action)
         action = (action - np.mean(action))
         # Make the actions have a bigger affect on the other agent than itself.
         scale = np.array([2] * self.n_agents)
