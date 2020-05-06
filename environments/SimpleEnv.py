@@ -139,6 +139,6 @@ class SimpleEnv(MultiAgentEnv):
         self.last_true_reward = self.get_true_rewards(pre_agent_var)
         
         done = {
-            "__all__": self._step_count >= 10,
+            "__all__": self._step_count >= self._max_step_count,
         }
         return self.get_agent_obs(self.agent_var), rewards, done, {}
