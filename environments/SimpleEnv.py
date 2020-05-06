@@ -117,15 +117,13 @@ class SimpleEnv(MultiAgentEnv):
         Currently just a dot product of reward weights and state.
         TODO: Change from dot product to neural network
         """
-        rewards = []
         reward_dict = {}
         for agent_i in range(self.n_agents):
             cur_obs = np.asarray(self.get_agent_obs(self.agent_var)[agent_i]).flatten()
             old_obs = np.asarray(self.get_agent_obs(pre_agent_var)[agent_i]).flatten()
             r = np.dot(cur_obs, self.reward_weights[agent_i]) - np.dot(old_obs, self.reward_weights[agent_i])
-            rewards.append(r)
             reward_dict[agent_i] = r
-            self._total_episode_reward[agent_i] += rewards[agent_i]
+            self._total_episode_reward[agent_i] += r
         return reward_dict
     
     def step(self, action_dict):
