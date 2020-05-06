@@ -54,12 +54,6 @@ class SimpleEnv(MultiAgentEnv):
         self.steps_beyond_done = None
         self.last_true_reward = np.zeros(self.n_agents)
         
-        self.agent_ids = [] #['agent_0', 'agent_1', ...]
-        self.agent_idx = {} #{'agent_0': 0, ...}
-        for i in range(self.n_agents):
-            self.agent_ids.append('agent_' + str(i))
-            self.agent_idx['agent_' + str(i)] = i
-
     def _correct_obs_order(self, agent_i, obs):
         current_agent_obs = obs.pop(agent_i)
         obs.insert(0, current_agent_obs)
@@ -76,7 +70,7 @@ class SimpleEnv(MultiAgentEnv):
 
             _agent_i_obs = self._correct_obs_order(agent_i, _agent_i_obs)
 
-            _obs[self.agent_ids[agent_i]] = _agent_i_obs
+            _obs[agent_i] = _agent_i_obs
 
         return _obs
     
@@ -93,7 +87,7 @@ class SimpleEnv(MultiAgentEnv):
 
     def _correct_action_order(self, agent_i, action):
         current_agent_act = action.pop(0)
-        action.insert(self.agent_idx[agent_i], current_agent_act)
+        action.insert(agent_i, current_agent_act)
         return action
 
     def __update_agent_action(self, agent_i, action):
@@ -105,7 +99,7 @@ class SimpleEnv(MultiAgentEnv):
         action = (action - np.mean(action))
         # Make the actions have a bigger affect on the other agent than itself.
         scale = np.array([2] * self.n_agents)
-        scale[self.agent_idx[agent_i]] = 1
+        scale[agent_i] = 1
         action = np.multiply(action, scale[:, np.newaxis])
         self.agent_var = (np.array(self.agent_var) + action).tolist()
 
@@ -125,14 +119,13 @@ class SimpleEnv(MultiAgentEnv):
         """
         rewards = []
         reward_dict = {}
-        for i in range(self.n_agents):
-            cur_obs = np.asarray(self.get_agent_obs(self.agent_var)[self.agent_ids[i]]).flatten()
-            old_obs = np.asarray(self.get_agent_obs(pre_agent_var)[self.agent_ids[i]]).flatten()
-            r = np.dot(cur_obs, self.reward_weights[i]) - np.dot(old_obs, self.reward_weights[i])
+        for agent_i in range(self.n_agents):
+            cur_obs = np.asarray(self.get_agent_obs(self.agent_var)[agent_i]).flatten()
+            old_obs = np.asarray(self.get_agent_obs(pre_agent_var)[agent_i]).flatten()
+            r = np.dot(cur_obs, self.reward_weights[agent_i]) - np.dot(old_obs, self.reward_weights[agent_i])
             rewards.append(r)
-            reward_dict[self.agent_ids[i]] = r
-        for i in range(self.n_agents):
-            self._total_episode_reward[i] += rewards[i]
+            reward_dict[agent_i] = r
+            self._total_episode_reward[agent_i] += rewards[agent_i]
         return reward_dict
     
     def step(self, action_dict):
