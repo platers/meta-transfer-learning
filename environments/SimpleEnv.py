@@ -13,17 +13,27 @@ class SimpleEnv(MultiAgentEnv):
     value of any agent’s state variable (including their own) up or down by 1. 
     
     Action space 
-    List of number of points to add to each variable in range [0, 5)
-    [agent1.var1, agent1.var2, agent2.var1, agent2.var2]
+    [n_agents x n_vars] array of number of points to add to each variable in range [0, 5)
+    The first row is the always the variables of the agent making the observation.
     
     Observation space
-    The value of every variable for every agent. The last value is the id of the agent.
-    [agent1.var1, agent1.var2, agent2.var1, agent2.var2, id]
+    [n_agents x n_vars] array containing the value of every variable for every agent. 
+    The first row is the always the variables of the agent making the observation.
     
     Reward
+    Reward for each agent is a dot product of its reward weights and observation.
     """
 
     def __init__(self, config):
+        """
+        config dict parameterers:
+        
+        n_agents : number of agents
+        n_vars : number of variables
+        reward_weights : [n_agents x n_vars] array of reward weights
+        true_reward_weights : [n_vars] array of true reward weights
+        max_step_count : number of timesteps
+        """
         self.n_agents = config['n_agents']
         self.n_vars = config['n_vars']
         self.reward_weights = config['reward_weights']
