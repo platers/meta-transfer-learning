@@ -127,6 +127,16 @@ class SimpleEnv(MultiAgentEnv):
         return reward_dict
     
     def step(self, action_dict):
+        """
+        Returns dictionaries
+        
+        action_dict = {
+            0 : [n_vars],
+            1 : [n_vars],
+            2 : [n_vars],
+            ...
+        }
+        """
         assert len(action_dict) == self.n_agents
 
         self._step_count += 1
