@@ -110,20 +110,31 @@ class SimpleEnv(MultiAgentEnv):
         diff = (np.array(self.agent_var) - np.array(pre_agent_var))
         rewards = np.dot(diff, self._true_reward_weights)
         return rewards
-    
+
+    def get_obs_arr(self, var):
+        obs = self.get_agent_obs(var)
+        obs_arr = []
+        for agent_i in range(self.n_agents):
+            obs_arr.append(np.array(obs[agent_i]).flatten())
+        return np.array(obs_arr)
+
     def get_rewards(self, pre_agent_var):
-        """
-        Returns dictionary of rewards according to each agents reward weights
-        Currently just a dot product of reward weights and state.
-        TODO: Change from dot product to neural network
+        """Rewards for increasing the minimum value.
+        The values with a reward_weight of 0 are ignored.
         """
         reward_dict = {}
+        cur_obs = self.get_obs_arr(self.agent_var)
+        pre_obs = self.get_obs_arr(pre_agent_var)
+        obs_diff = cur_obs - pre_obs
+
+        cur_obs_for_min = np.where(self.reward_weights, cur_obs, np.inf)
+        min_is = np.argmin(cur_obs_for_min, axis=1)
+
+        reward = obs_diff[:, min_is]
+
         for agent_i in range(self.n_agents):
-            cur_obs = np.asarray(self.get_agent_obs(self.agent_var)[agent_i]).flatten()
-            old_obs = np.asarray(self.get_agent_obs(pre_agent_var)[agent_i]).flatten()
-            r = np.dot(cur_obs, self.reward_weights[agent_i]) - np.dot(old_obs, self.reward_weights[agent_i])
-            reward_dict[agent_i] = r
-            self._total_episode_reward[agent_i] += r
+            reward_dict[agent_i] = reward[agent_i]
+            self._total_episode_reward[agent_i] += reward[agent_i]
         return reward_dict
     
     def step(self, action_dict):
