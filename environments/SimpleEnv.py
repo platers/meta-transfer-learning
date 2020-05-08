@@ -130,7 +130,7 @@ class SimpleEnv(MultiAgentEnv):
         cur_obs_for_min = np.where(self.reward_weights, cur_obs, np.inf)
         min_is = np.argmin(cur_obs_for_min, axis=1)
 
-        reward = obs_diff[:, min_is]
+        reward = obs_diff[:, min_is][0]
 
         for agent_i in range(self.n_agents):
             reward_dict[agent_i] = reward[agent_i]
